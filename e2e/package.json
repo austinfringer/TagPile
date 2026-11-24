@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1",
+    "@playwright/test": "1.65.1",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3"
   }
