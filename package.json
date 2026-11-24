@@ -1,0 +1,71 @@
+{
+  "name": "tagpile",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted file tagging and search: Express + SQLite server with a Svelte client",
+  "homepage": "https://github.com/austinfringer/TagPile#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/austinfringer/TagPile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/austinfringer/TagPile/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "client",
+    "server",
+    "e2e"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,magenta \"npm:dev -w server\" \"npm:dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "start": "npm run start -w server",
+    "acceptance": "npm run build && node scripts/with-env.mjs HOST=127.0.0.1 PORT=4000 DATABASE_PATH=./data/acceptance.sqlite JWT_SECRET=acceptance-test-secret -- npm run start -w server",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run build && npm run test:e2e -w e2e",
+    "test:watch": "npm run test:watch -w server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "clean": "node -e \"for (const d of ['client/dist', 'server/dist']) require('node:fs').rmSync(d, { recursive: true, force: true })\"",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,ts,svelte}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,scss,css,html,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.23.0",
+    "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
+    "postject": "^1.0.0-alpha.6",
+    "prettier": "^3.9.6",
+    "prettier-plugin-svelte": "^4.1.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.69.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true,
+    "esbuild@0.28.2": true,
+    "@parcel/watcher@2.6.0": true
+  }
+}

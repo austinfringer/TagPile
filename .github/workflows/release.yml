@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.targets }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targets: linux-x64,win-x64
+          # The macOS zips need codesign, which only a macOS runner has.
+          - os: macos-latest
+            targets: darwin-arm64,darwin-x64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Check that the tag matches the package version
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          for pkg in package.json server/package.json; do
+            version="v$(node -p "require('./$pkg').version")"
+            if [ "$version" != "$TAG" ]; then
+              echo "::error::Tag $TAG does not match the version in $pkg ($version)."
+              exit 1
+            fi
+          done
+      - run: npm ci
+      - run: npm run build:standalone -- --target=${{ matrix.targets }}
+      - name: Check the macOS signatures
+        if: runner.os == 'macOS'
+        run: |
+          for zip in dist/tagpile-v*-darwin-*.zip; do
+            dir="$(mktemp -d)"
+            unzip -q "$zip" -d "$dir"
+            codesign --verify --verbose "$dir"/*/tagpile
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: zips-${{ matrix.os }}
+          path: dist/tagpile-v*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Create draft release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: zips-*
+          path: dist
+          merge-multiple: true
+      - name: Write checksums
+        working-directory: dist
+        run: sha256sum tagpile-v*.zip > SHA256SUMS.txt
+      - name: Get the release notes from CHANGELOG.md
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          awk -v v="${TAG#v}" '
+            /^## \[/ { p = index($0, "## [" v "]") == 1; next }
+            /^\[[^]]*\]: / { p = 0 }
+            p
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no section for ${TAG#v}."
+            exit 1
+          fi
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/tagpile-v*.zip dist/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --draft \
+            --title "TagPile $TAG" \
+            --notes-file release-notes.md

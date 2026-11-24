@@ -1,0 +1,53 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a security problem here. Read [SECURITY.md](https://github.com/austinfringer/TagPile/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Tell what you did, what you expected, and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TagPile version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you run TagPile
+      options:
+        - Standalone build (zip)
+        - From source (npm start)
+        - Development (npm run dev)
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and browser
+      placeholder: Windows 11, Firefox 140
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server log
+      description: Remove invitation codes, paths, and other private data first.
+      render: text
